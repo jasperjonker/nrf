@@ -9,9 +9,9 @@ ARG PYTHON_VERSION=3.12
 ARG GO_VERSION=1.23.2
 
 # Nordic
-ARG sdk_nrf_branch=v2.7-branch
-ARG toolchain_version=v2.7.0
-ARG sdk_nrf_commit
+# ARG nrf_sdk_branch=v2.7-branch
+ARG NRF_TOOLCHAIN_VERSION=v2.8.0
+ARG NRF_SDK_VERSION=v2.8.0
 ARG NORDIC_COMMAND_LINE_TOOLS_VERSION="10-24-0/nrf-command-line-tools-10.24.0"
 ARG arch=amd64
 
@@ -122,26 +122,8 @@ RUN <<EOT
     rm -rf /var/lib/apt/lists/*
 EOT
 
-# Install toolchain
-# Make nrfutil install in a shared location, because when used with GitHub
-# Actions, the image will be launched with the home dir mounted from the local
-# checkout.
-ENV NRFUTIL_HOME=/usr/local/share/nrfutil
-RUN <<EOT
-    wget https://developer.nordicsemi.com/.pc-tools/nrfutil/x64-linux/nrfutil
-    mv nrfutil /usr/local/bin
-    chmod +x /usr/local/bin/nrfutil
-    nrfutil install toolchain-manager
-    nrfutil install toolchain-manager search
-    nrfutil toolchain-manager install --ncs-version ${toolchain_version}
-    nrfutil toolchain-manager list
-    rm -f /root/ncs/downloads/*
-EOT
-
-# ClangFormat
-RUN <<EOT
-    wget -qO- https://raw.githubusercontent.com/nrfconnect/sdk-nrf/${sdk_nrf_branch}/.clang-format > .clang-format
-EOT
+USER $USERNAME
+WORKDIR $HOME_DIR
 
 # Nordic command line tools
 # Releases: https://www.nordicsemi.com/Products/Development-tools/nrf-command-line-tools/download
@@ -158,23 +140,37 @@ RUN <<EOT
     esac
     echo "NCLT_URL=${NCLT_URL}"
     if [ ! -z "$NCLT_URL" ]; then
-        cd /tmp
+        mkdir tmp && cd tmp
         wget -O - "${NCLT_URL}" | tar --no-same-owner -xz
         # Install included JLink
-        mkdir /opt/SEGGER
-        tar xzf JLink_*.tgz -C /opt/SEGGER
-        mv /opt/SEGGER/JLink* /opt/SEGGER/JLink
+        sudo mkdir /opt/SEGGER
+        sudo tar xzf JLink_*.tgz -C /opt/SEGGER
+        sudo mv /opt/SEGGER/JLink* /opt/SEGGER/JLink
         # Install nrf-command-line-tools
-        cp -r ./nrf-command-line-tools /opt
-        ln -s /opt/nrf-command-line-tools/bin/nrfjprog /usr/local/bin/nrfjprog
-        ln -s /opt/nrf-command-line-tools/bin/mergehex /usr/local/bin/mergehex
-        cd .. && rm -rf /tmp && mkdir /tmp && chmod 777 /tmp;
+        sudo cp -r ./nrf-command-line-tools /opt
+        sudo ln -s /opt/nrf-command-line-tools/bin/nrfjprog /usr/local/bin/nrfjprog
+        sudo ln -s /opt/nrf-command-line-tools/bin/mergehex /usr/local/bin/mergehex
+        cd .. && rm -rf tmp; \
     else
         echo "Skipping nRF Command Line Tools (not available for $arch)" ;
     fi
 EOT
 
-USER $USERNAME
+# Install toolchain
+# Make nrfutil install in a shared location, because when used with GitHub
+# Actions, the image will be launched with the home dir mounted from the local
+# checkout.
+# ENV NRFUTIL_HOME=/usr/local/share/nrfutil
+RUN <<EOT
+    wget https://developer.nordicsemi.com/.pc-tools/nrfutil/x64-linux/nrfutil
+    chmod +x nrfutil
+    sudo mv nrfutil /usr/local/bin
+    nrfutil install toolchain-manager
+    nrfutil install toolchain-manager search
+    nrfutil toolchain-manager install --ncs-version ${NRF_TOOLCHAIN_VERSION}
+    nrfutil toolchain-manager list
+    rm -f ${HOME_DIR}/ncs/downloads/*
+EOT
 
 # Install pyenv
 RUN git clone --depth 1 https://github.com/pyenv/pyenv.git "${PYENV_ROOT}"
@@ -201,5 +197,21 @@ RUN pyenv virtualenv "${PYTHON_VERSION}" zephyr-dev
 RUN pyenv global zephyr-dev && \
     echo 'pyenv global zephyr-dev' >> ${HOME_DIR}/.bashrc && \
     echo 'pyenv global zephyr-dev' >> ${HOME_DIR}/.zshrc
+
+# Set up the Nordic SDK
+WORKDIR $HOME_DIR/ncs
+RUN <<EOT
+    west init -m https://github.com/nrfconnect/sdk-nrf --mr ${NRF_SDK_VERSION} ${NRF_SDK_VERSION}
+    cd ${NRF_SDK_VERSION}
+    west update
+    west zephyr-export
+    pip3 install --upgrade pip
+    pip3 install -r zephyr/scripts/requirements.txt
+    pip3 install -r nrf/scripts/requirements.txt
+    pip3 install -r bootloader/mcuboot/scripts/requirements.txt
+EOT
+
+ENV ZEPHYR_BASE="${HOME_DIR}/ncs/${NRF_SDK_VERSION}/zephyr"
+ENV NCS_TOOLCHAIN_VERSION="${NRF_TOOLCHAIN_VERSION}"
 
 # NOTE: All user configuration (e.g. zshrc, nvim) should be done using dotfiles and added to your user vscode settings.json
