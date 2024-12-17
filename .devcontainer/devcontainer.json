@@ -1,0 +1,76 @@
+{
+    "name": "Zephyr dev",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+            "WORKSPACE": "${containerWorkspaceFolder}"
+        },
+        "options": [
+            "--network=host"
+        ]
+    },
+    "remoteUser": "user",
+    "containerUser": "user",
+    "updateRemoteUserUID": true,
+	"containerEnv": {
+        "ZEPHYR_BASE": "${containerWorkspaceFolder}/zephyr"
+    },
+    // "features": {
+    //     "ghcr.io/mikaello/devcontainer-features/modern-shell-utils:latest": {},
+    //     "ghcr.io/devcontainers-contrib/features/pre-commit:2": {},
+    //     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    // },
+    // Persistent history (e.g. shell), see https://code.visualstudio.com/docs/devcontainers/tips-and-tricks#_persisting-user-profile
+    "mounts": [
+        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+        "source=profile,target=/root,type=volume",
+        "target=/root/.vscode-server,type=volume",
+        "type=bind,source=/dev,target=/dev"
+    ],
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "zsh",
+                "terminal.integrated.profiles.linux": {
+                    "zsh": {
+                        "path": "/bin/zsh",
+                        "icon": "terminal-linux"
+                    }
+                },
+                "terminal.integrated.hideOnStartup": "whenEmpty"
+            },
+            "extensions": [
+                "ms-vscode.cpptools-extension-pack",
+                "ms-vscode.hexeditor",
+                "ms-vscode.vscode-serial-monitor",
+                "GitHub.copilot",
+                "vscodevim.vim",
+                "nordic-semiconductor.nrf-connect-extension-pack",
+                "akamud.vscode-theme-onedark",
+                "aaron-bond.better-comments",
+                "mcu-debug.debug-tracker-vscode",
+                "marus25.cortex-debug",
+                "mcu-debug.memory-view",
+                "mcu-debug.rtos-views",
+                "mcu-debug.peripheral-viewer",
+                "cschlosser.doxdocgen",
+                "eamodio.gitlens"
+            ]
+        }
+    },
+    // Priviliged mode is needed for USB access
+    "privileged": true,
+    // Due to SELinux manually mount the workspace folder
+    "workspaceMount": "",
+    // Needed for ptrace-based debuggers like C++, Go, and Rust
+    "postCreateCommand": "bash -i .devcontainer/post-create.sh",
+    "runArgs": [
+        "--cap-add=SYS_PTRACE",
+        "--security-opt",
+        "seccomp=unconfined",
+        "--volume=${localWorkspaceFolder}:/workspaces/${localWorkspaceFolderBasename}:Z"
+    ],
+    "forwardPorts": [
+        3000
+    ]
+}
