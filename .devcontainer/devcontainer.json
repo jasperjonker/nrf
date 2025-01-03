@@ -15,11 +15,6 @@
 	"containerEnv": {
         "ZEPHYR_BASE": "${containerWorkspaceFolder}/zephyr"
     },
-    // "features": {
-    //     "ghcr.io/mikaello/devcontainer-features/modern-shell-utils:latest": {},
-    //     "ghcr.io/devcontainers-contrib/features/pre-commit:2": {},
-    //     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
-    // },
     // Persistent history (e.g. shell), see https://code.visualstudio.com/docs/devcontainers/tips-and-tricks#_persisting-user-profile
     "mounts": [
         "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
