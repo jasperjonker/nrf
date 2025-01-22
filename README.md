@@ -17,3 +17,49 @@ This sample shows how to use the nordic SDK (with zephyr) in a vscode devcontain
 
 1. **Setup udev Rules** (Linux only):
    - Install the rules from [this guide](https://github.com/NordicSemiconductor/nrf-udev) if needed.
+
+## Locally
+
+1. Clone this repository:
+
+   ```sh
+   git clone git@github.com:jasperjonker/nrf.git
+   ```
+
+1. Install the nrf toolchain. Easiest is using the NRF Connect VSCode extension.
+
+1. Install NRF Connect SDK (here using NRF SDK version 2.9.0):
+
+   ```sh
+   west init -m https://github.com/nrfconnect/sdk-nrf --mr v2.9.0
+   ```
+
+   ```sh
+   west update
+   ```
+
+   or use the extension, but you might need to symlink libunistring: `sudo ln -s /usr/lib64/libunistring.so.5 /usr/lib64/libunistring.so.2` (at least on Fedora/Ubuntu 24).
+
+1. Install the python packages (use a virtualenv):
+
+   ```sh
+   pip install --upgrade pip && \
+   pip install -r zephyr/scripts/requirements.txt && \
+   pip install -r nrf/scripts/requirements.txt && \
+   pip install -r bootloader/mcuboot/scripts/requirements.txt
+   ```
+
+1. Install [nrfutil](https://www.nordicsemi.com/Products/Development-tools/nRF-Util/Download#infotabs)
+
+   ```sh
+   chmod +x ./nrfutil
+   sudo mkdir -p /opt/nordic
+   sudo mv nrfutil /opt/nordic/
+   ```
+
+   And update your `PATH` to include `/opt/nordic` by adding it to your `~/.bashrc` or `~/.zshrc`:
+
+   ```sh
+   PATH="$PATH:/opt/nordic"
+   ```
+
